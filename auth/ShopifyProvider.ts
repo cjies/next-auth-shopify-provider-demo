@@ -2,7 +2,7 @@ import { OAuthConfig, OAuthUserConfig } from 'next-auth/providers/oauth'
 import { cookies } from 'next/headers'
 
 const CUSTOMER_SHOP_ID = process.env.NEXT_PUBLIC_SHOPIFY_CUSTOMER_SHOP_ID
-const CUSTOMER_API_VERSION = '2023-07'
+const CUSTOMER_API_VERSION = '2024-07'
 
 // cookies name to store access token
 const CUSTOMER_ACCOUNT_ACCESS_TOKEN_COOKIE = 'customer-access-token'
@@ -46,15 +46,17 @@ const ShopifyProvider = (options: OAuthUserConfig<ShopifyCustomer>): OAuthConfig
           throw new Error('code search params is missing')
         }
 
+        const credentials = btoa(`${provider.clientId}:${provider.clientSecret}`);
+
         const tokenResponse = await fetch(`https://shopify.com/${CUSTOMER_SHOP_ID}/auth/oauth/token`, {
           method: 'POST',
           headers: {
             'content-type': 'application/x-www-form-urlencoded',
+            Authorization: `Basic ${credentials}`,
           },
           body: new URLSearchParams({
             grant_type: 'authorization_code',
             client_id: provider.clientId!,
-            client_secret: provider.clientSecret!, // XXX: Not a standard parameter, but Shopify requires it...
             redirect_uri: provider.callbackUrl,
             code: params.code,
           }),
@@ -86,11 +88,11 @@ const ShopifyProvider = (options: OAuthUserConfig<ShopifyCustomer>): OAuthConfig
           method: 'POST',
           headers: {
             'content-type': 'application/x-www-form-urlencoded',
+            Authorization: `Basic ${credentials}`,
           },
           body: new URLSearchParams({
             grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
             client_id: provider.clientId!,
-            client_secret: provider.clientSecret!, // XXX: Not a standard parameter, but Shopify requires it...
             subject_token,
             audience: '30243aa5-17c1-465a-8493-944bcc4e88aa',
             subject_token_type: 'urn:ietf:params:oauth:token-type:access_token',
