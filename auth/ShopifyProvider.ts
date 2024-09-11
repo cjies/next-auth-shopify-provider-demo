@@ -41,9 +41,13 @@ const ShopifyProvider = (options: OAuthUserConfig<ShopifyCustomer>): OAuthConfig
       },
     },
     token: {
-      request: async ({ params, provider }) => {
+      request: async ({ params, checks, provider }) => {
         if (!params.code) {
           throw new Error('code search params is missing')
+        }
+
+        if (!checks.code_verifier) {
+          throw new Error('code_verifier is missing')
         }
 
         const credentials = btoa(`${provider.clientId}:${provider.clientSecret}`);
@@ -59,6 +63,7 @@ const ShopifyProvider = (options: OAuthUserConfig<ShopifyCustomer>): OAuthConfig
             client_id: provider.clientId!,
             redirect_uri: provider.callbackUrl,
             code: params.code,
+            code_verifier: checks.code_verifier,
           }),
         })
 
