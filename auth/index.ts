@@ -29,7 +29,7 @@ export const authOptions: AuthOptions = {
   events: {
     async signOut({ token }) {
       // trigger sign out on Shopify
-      const signOutUrl = new URL(`https://shopify.com/${CUSTOMER_SHOP_ID}/auth/logout`)
+      const signOutUrl = new URL(`https://shopify.com/authentication/${CUSTOMER_SHOP_ID}/logout`)
       if (token.id_token) {
         signOutUrl.searchParams.append('id_token_hint', token.id_token as string)
       }

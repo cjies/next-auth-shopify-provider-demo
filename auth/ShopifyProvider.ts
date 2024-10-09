@@ -34,9 +34,10 @@ const ShopifyProvider = (options: OAuthUserConfig<ShopifyCustomer>): OAuthConfig
     type: 'oauth',
     checks: ['state', 'nonce'],
     authorization: {
-      url: `https://shopify.com/${CUSTOMER_SHOP_ID}/auth/oauth/authorize`,
+      url: `https://shopify.com/authentication/${CUSTOMER_SHOP_ID}/oauth/authorize`,
       params: {
-        scope: 'openid email https://api.customers.com/auth/customer.graphql',
+        scope: 'openid email customer-account-api:full',
+        client_id: options.clientId,
         response_type: 'code',
       },
     },
@@ -52,7 +53,7 @@ const ShopifyProvider = (options: OAuthUserConfig<ShopifyCustomer>): OAuthConfig
 
         const credentials = btoa(`${provider.clientId}:${provider.clientSecret}`);
 
-        const tokenResponse = await fetch(`https://shopify.com/${CUSTOMER_SHOP_ID}/auth/oauth/token`, {
+        const tokenResponse = await fetch(`https://shopify.com/authentication/${CUSTOMER_SHOP_ID}/oauth/token`, {
           method: 'POST',
           headers: {
             'content-type': 'application/x-www-form-urlencoded',
@@ -81,61 +82,19 @@ const ShopifyProvider = (options: OAuthUserConfig<ShopifyCustomer>): OAuthConfig
           id_token: string
           refresh_token: string
         }
-        const {
-          access_token: subject_token,
-          expires_in,
-          id_token,
-          refresh_token,
-        } = (await tokenResponse.json()) as AccessTokenResponse
-
-        // Exchange access token
-        const exchangeTokenResponse = await fetch(`https://shopify.com/${CUSTOMER_SHOP_ID}/auth/oauth/token`, {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/x-www-form-urlencoded',
-            Authorization: `Basic ${credentials}`,
-          },
-          body: new URLSearchParams({
-            grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
-            client_id: provider.clientId!,
-            subject_token,
-            audience: '30243aa5-17c1-465a-8493-944bcc4e88aa',
-            subject_token_type: 'urn:ietf:params:oauth:token-type:access_token',
-            scopes: 'https://api.customers.com/auth/customer.graphql',
-          }),
-        })
-
-        if (!exchangeTokenResponse.ok) {
-          throw new Error(
-            `${exchangeTokenResponse.status} (RequestID ${exchangeTokenResponse.headers.get(
-              'x-request-id'
-            )}): ${await exchangeTokenResponse.text()}`
-          )
-        }
-
-        interface ExchangeAccessTokenResponse {
-          access_token: string
-          expires_in: number
-          error?: string
-          error_description?: string
-        }
-        const data = (await exchangeTokenResponse.json()) as ExchangeAccessTokenResponse
-
-        if (data.error) {
-          throw new Error(data.error_description)
-        }
+        const data = (await tokenResponse.json()) as AccessTokenResponse
 
         // store access token into cookies so we can retrieve it when calling customer account api in server and client
         cookies().set(CUSTOMER_ACCOUNT_ACCESS_TOKEN_COOKIE, data.access_token, {
-          expires: Date.now() + expires_in * 1000,
+          expires: Date.now() + data.expires_in * 1000,
         })
 
         return {
           tokens: {
             access_token: data.access_token,
-            id_token,
-            refresh_token,
-            expires_in,
+            id_token: data.id_token,
+            refresh_token: data.refresh_token,
+            expires_in: data.expires_in,
           },
         }
       },
