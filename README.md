@@ -1,5 +1,7 @@
 # next-auth custom oauth provider with Shopify Customer Account API
 
+> check better-auth solution at [cjies/better-auth-shopify-oauth-demo](https://github.com/cjies/better-auth-shopify-oauth-demo)
+
 Demo of creating a next-auth oath provider with [Shopify Customer Account API](https://shopify.dev/docs/api/customer)
 
 ## Shopify Setup
